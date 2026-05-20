@@ -1,5 +1,5 @@
 # FNF: Uzi Funkin Engine - GitHub Actions Build Workflow
-# Builds the engine for Windows (.exe) on every push and on manual trigger.
+# Builds the engine for Windows (.exe), Linux, and macOS on every push.
 # Build artifacts are uploaded and available for download from the Actions tab.
 
 name: Build Uzi Funkin Engine
@@ -61,34 +61,48 @@ jobs:
           haxe -version
           haxelib version
 
+      - name: Setup FunkinCrew haxelib (with patches)
+        run: |
+          haxelib --global remove haxelib || true
+          haxelib --global git haxelib https://github.com/FunkinCrew/haxelib funkin-patches --skip-dependencies
+          haxelib --global set haxelib git
+
+      - name: Setup FunkinCrew hmm (with patches)
+        run: |
+          haxelib --global remove hmm || true
+          haxelib --global git hmm https://github.com/FunkinCrew/hmm funkin-patches
+          haxelib --global set hmm git
+
+      - name: Initialize local haxelib repo
+        run: |
+          haxelib --never newrepo
+
       - name: Cache Haxelib dependencies
         uses: actions/cache@v4
         id: cache-hmm
         with:
           path: .haxelib
-          key: haxe-hmm-windows-${{ hashFiles('**/hmm.json') }}
+          key: haxe-hmm-windows-v2-${{ hashFiles('**/hmm.json') }}
           restore-keys: |
-            haxe-hmm-windows-
+            haxe-hmm-windows-v2-
 
-      - name: Install HMM and dependencies
+      - name: Install dependencies via hmm
         if: steps.cache-hmm.outputs.cache-hit != 'true'
         run: |
-          haxelib --global install hmm
           haxelib --global run hmm install -q
-        timeout-minutes: 30
+        timeout-minutes: 45
 
-      - name: Configure haxelib repo
-        if: steps.cache-hmm.outputs.cache-hit == 'true'
+      - name: Build hxcpp tools
+        if: steps.cache-hmm.outputs.cache-hit != 'true'
         run: |
-          haxelib --global install hmm || true
-          haxelib --never newrepo
+          cd .haxelib/hxcpp/git/tools/hxcpp
+          haxe compile.hxml
+        timeout-minutes: 15
 
       - name: Cache HXCPP compilation
         uses: actions/cache@v4
         with:
-          path: |
-            ${{ runner.temp }}/hxcpp_cache
-            export
+          path: ${{ runner.temp }}/hxcpp_cache
           key: hxcpp-windows-${{ github.ref_name }}-${{ github.sha }}
           restore-keys: |
             hxcpp-windows-${{ github.ref_name }}-
@@ -119,13 +133,11 @@ jobs:
           echo "Build dir: $BUILD_DIR"
           ls -la "$BUILD_DIR" || true
 
-          # Create a zip with version info
           VERSION=$(git describe --tags --always --dirty 2>/dev/null || echo "dev")
           ARTIFACT_NAME="UziFunkin-Windows-${VERSION}"
           mkdir -p "/tmp/${ARTIFACT_NAME}"
           cp -r "${BUILD_DIR}"/* "/tmp/${ARTIFACT_NAME}/" 2>/dev/null || true
 
-          # Write build info
           cat > "/tmp/${ARTIFACT_NAME}/build_info.txt" << EOF
           FNF: Uzi Funkin Engine
           Build Version: ${VERSION}
@@ -133,7 +145,7 @@ jobs:
           Branch: ${{ github.ref_name }}
           Build Date: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
           Build Type: ${{ github.event.inputs.build_type || 'release' }}
-          Runner: ${{ runner.os }}
+          Platform: Windows
           Haxe: ${{ env.HAXE_VERSION }}
           EOF
 
@@ -188,34 +200,48 @@ jobs:
           haxe -version
           haxelib version
 
+      - name: Setup FunkinCrew haxelib (with patches)
+        run: |
+          haxelib --global remove haxelib || true
+          haxelib --global git haxelib https://github.com/FunkinCrew/haxelib funkin-patches --skip-dependencies
+          haxelib --global set haxelib git
+
+      - name: Setup FunkinCrew hmm (with patches)
+        run: |
+          haxelib --global remove hmm || true
+          haxelib --global git hmm https://github.com/FunkinCrew/hmm funkin-patches
+          haxelib --global set hmm git
+
+      - name: Initialize local haxelib repo
+        run: |
+          haxelib --never newrepo
+
       - name: Cache Haxelib dependencies
         uses: actions/cache@v4
         id: cache-hmm
         with:
           path: .haxelib
-          key: haxe-hmm-linux-${{ hashFiles('**/hmm.json') }}
+          key: haxe-hmm-linux-v2-${{ hashFiles('**/hmm.json') }}
           restore-keys: |
-            haxe-hmm-linux-
+            haxe-hmm-linux-v2-
 
-      - name: Install HMM and dependencies
+      - name: Install dependencies via hmm
         if: steps.cache-hmm.outputs.cache-hit != 'true'
         run: |
-          haxelib --global install hmm
           haxelib --global run hmm install -q
-        timeout-minutes: 30
+        timeout-minutes: 45
 
-      - name: Configure haxelib repo
-        if: steps.cache-hmm.outputs.cache-hit == 'true'
+      - name: Build hxcpp tools
+        if: steps.cache-hmm.outputs.cache-hit != 'true'
         run: |
-          haxelib --global install hmm || true
-          haxelib --never newrepo
+          cd .haxelib/hxcpp/git/tools/hxcpp
+          haxe compile.hxml
+        timeout-minutes: 15
 
       - name: Cache HXCPP compilation
         uses: actions/cache@v4
         with:
-          path: |
-            ${{ runner.temp }}/hxcpp_cache
-            export
+          path: ${{ runner.temp }}/hxcpp_cache
           key: hxcpp-linux-${{ github.ref_name }}-${{ github.sha }}
           restore-keys: |
             hxcpp-linux-${{ github.ref_name }}-
@@ -257,7 +283,7 @@ jobs:
           Branch: ${{ github.ref_name }}
           Build Date: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
           Build Type: ${{ github.event.inputs.build_type || 'release' }}
-          Runner: ${{ runner.os }}
+          Platform: Linux
           Haxe: ${{ env.HAXE_VERSION }}
           EOF
 
@@ -280,7 +306,7 @@ jobs:
   # ──────────────────────────────────────────────
   build-macos:
     name: Build macOS
-    runs-on: macos-latest
+    runs-on: macos-13
     defaults:
       run:
         shell: bash
@@ -302,34 +328,48 @@ jobs:
           haxe -version
           haxelib version
 
+      - name: Setup FunkinCrew haxelib (with patches)
+        run: |
+          haxelib --global remove haxelib || true
+          haxelib --global git haxelib https://github.com/FunkinCrew/haxelib funkin-patches --skip-dependencies
+          haxelib --global set haxelib git
+
+      - name: Setup FunkinCrew hmm (with patches)
+        run: |
+          haxelib --global remove hmm || true
+          haxelib --global git hmm https://github.com/FunkinCrew/hmm funkin-patches
+          haxelib --global set hmm git
+
+      - name: Initialize local haxelib repo
+        run: |
+          haxelib --never newrepo
+
       - name: Cache Haxelib dependencies
         uses: actions/cache@v4
         id: cache-hmm
         with:
           path: .haxelib
-          key: haxe-hmm-macos-${{ hashFiles('**/hmm.json') }}
+          key: haxe-hmm-macos-v2-${{ hashFiles('**/hmm.json') }}
           restore-keys: |
-            haxe-hmm-macos-
+            haxe-hmm-macos-v2-
 
-      - name: Install HMM and dependencies
+      - name: Install dependencies via hmm
         if: steps.cache-hmm.outputs.cache-hit != 'true'
         run: |
-          haxelib --global install hmm
           haxelib --global run hmm install -q
-        timeout-minutes: 30
+        timeout-minutes: 45
 
-      - name: Configure haxelib repo
-        if: steps.cache-hmm.outputs.cache-hit == 'true'
+      - name: Build hxcpp tools
+        if: steps.cache-hmm.outputs.cache-hit != 'true'
         run: |
-          haxelib --global install hmm || true
-          haxelib --never newrepo
+          cd .haxelib/hxcpp/git/tools/hxcpp
+          haxe compile.hxml
+        timeout-minutes: 15
 
       - name: Cache HXCPP compilation
         uses: actions/cache@v4
         with:
-          path: |
-            ${{ runner.temp }}/hxcpp_cache
-            export
+          path: ${{ runner.temp }}/hxcpp_cache
           key: hxcpp-macos-${{ github.ref_name }}-${{ github.sha }}
           restore-keys: |
             hxcpp-macos-${{ github.ref_name }}-
@@ -371,7 +411,7 @@ jobs:
           Branch: ${{ github.ref_name }}
           Build Date: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
           Build Type: ${{ github.event.inputs.build_type || 'release' }}
-          Runner: ${{ runner.os }}
+          Platform: macOS
           Haxe: ${{ env.HAXE_VERSION }}
           EOF
 

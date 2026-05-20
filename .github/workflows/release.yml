@@ -35,34 +35,48 @@ jobs:
         with:
           haxe-version: ${{ env.HAXE_VERSION }}
 
+      - name: Setup FunkinCrew haxelib (with patches)
+        run: |
+          haxelib --global remove haxelib || true
+          haxelib --global git haxelib https://github.com/FunkinCrew/haxelib funkin-patches --skip-dependencies
+          haxelib --global set haxelib git
+
+      - name: Setup FunkinCrew hmm (with patches)
+        run: |
+          haxelib --global remove hmm || true
+          haxelib --global git hmm https://github.com/FunkinCrew/hmm funkin-patches
+          haxelib --global set hmm git
+
+      - name: Initialize local haxelib repo
+        run: |
+          haxelib --never newrepo
+
       - name: Cache Haxelib dependencies
         uses: actions/cache@v4
         id: cache-hmm
         with:
           path: .haxelib
-          key: haxe-hmm-windows-${{ hashFiles('**/hmm.json') }}
+          key: haxe-hmm-windows-v2-${{ hashFiles('**/hmm.json') }}
           restore-keys: |
-            haxe-hmm-windows-
+            haxe-hmm-windows-v2-
 
-      - name: Install HMM and dependencies
+      - name: Install dependencies via hmm
         if: steps.cache-hmm.outputs.cache-hit != 'true'
         run: |
-          haxelib --global install hmm
           haxelib --global run hmm install -q
-        timeout-minutes: 30
+        timeout-minutes: 45
 
-      - name: Configure haxelib repo
-        if: steps.cache-hmm.outputs.cache-hit == 'true'
+      - name: Build hxcpp tools
+        if: steps.cache-hmm.outputs.cache-hit != 'true'
         run: |
-          haxelib --global install hmm || true
-          haxelib --never newrepo
+          cd .haxelib/hxcpp/git/tools/hxcpp
+          haxe compile.hxml
+        timeout-minutes: 15
 
       - name: Cache HXCPP compilation
         uses: actions/cache@v4
         with:
-          path: |
-            ${{ runner.temp }}/hxcpp_cache
-            export
+          path: ${{ runner.temp }}/hxcpp_cache
           key: hxcpp-release-windows-${{ github.ref_name }}-${{ github.sha }}
           restore-keys: |
             hxcpp-release-windows-${{ github.ref_name }}-
@@ -86,7 +100,6 @@ jobs:
           mkdir -p "/tmp/${ARTIFACT_NAME}"
           cp -r "${BUILD_DIR}"/* "/tmp/${ARTIFACT_NAME}/" 2>/dev/null || true
 
-          # Write build info
           cat > "/tmp/${ARTIFACT_NAME}/build_info.txt" << EOF
           FNF: Uzi Funkin Engine
           Version: ${TAG_NAME}
