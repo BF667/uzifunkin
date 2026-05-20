@@ -167,14 +167,14 @@ class LauncherState extends MusicBeatState
   function getEnabledModCount():Int
   {
     #if FEATURE_POLYMOD_MODS
-    var mods = funkin.save.Save.instance?.enabledModDirs;
+    var mods = funkin.save.Save.instance?.enabledModDirs?.value;
     if (mods != null) return mods.length;
     #end
     return 0;
   }
 
   #if FEATURE_FILE_DROP
-  function handleFileDrop(path:String):Void
+  function handleFileDrop(path:String, state:String, x:Float, y:Float):Void
   {
     if (transitioning) return;
     trace('File dropped: $path');
