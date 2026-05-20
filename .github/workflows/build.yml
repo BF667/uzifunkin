@@ -1,0 +1,390 @@
+# FNF: Uzi Funkin Engine - GitHub Actions Build Workflow
+# Builds the engine for Windows (.exe) on every push and on manual trigger.
+# Build artifacts are uploaded and available for download from the Actions tab.
+
+name: Build Uzi Funkin Engine
+
+on:
+  push:
+    branches: [main, master]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - '.github/workflows/!(build.yml)'
+      - 'LICENSE'
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Build type (debug or release)'
+        required: false
+        default: 'release'
+        type: choice
+        options:
+          - release
+          - debug
+      upload_artifact:
+        description: 'Upload build artifact'
+        required: false
+        default: true
+        type: boolean
+
+env:
+  HAXE_VERSION: '4.3.6'
+
+jobs:
+  # ──────────────────────────────────────────────
+  # Build for Windows (.exe)
+  # ──────────────────────────────────────────────
+  build-windows:
+    name: Build Windows .exe
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Install Haxe
+        uses: krdlab/setup-haxe@v1
+        with:
+          haxe-version: ${{ env.HAXE_VERSION }}
+
+      - name: Verify Haxe installation
+        run: |
+          haxe -version
+          haxelib version
+
+      - name: Cache Haxelib dependencies
+        uses: actions/cache@v4
+        id: cache-hmm
+        with:
+          path: .haxelib
+          key: haxe-hmm-windows-${{ hashFiles('**/hmm.json') }}
+          restore-keys: |
+            haxe-hmm-windows-
+
+      - name: Install HMM and dependencies
+        if: steps.cache-hmm.outputs.cache-hit != 'true'
+        run: |
+          haxelib --global install hmm
+          haxelib --global run hmm install -q
+        timeout-minutes: 30
+
+      - name: Configure haxelib repo
+        if: steps.cache-hmm.outputs.cache-hit == 'true'
+        run: |
+          haxelib --global install hmm || true
+          haxelib --never newrepo
+
+      - name: Cache HXCPP compilation
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ runner.temp }}/hxcpp_cache
+            export
+          key: hxcpp-windows-${{ github.ref_name }}-${{ github.sha }}
+          restore-keys: |
+            hxcpp-windows-${{ github.ref_name }}-
+
+      - name: Set HXCPP cache env
+        run: |
+          echo "HXCPP_COMPILE_CACHE=${{ runner.temp }}/hxcpp_cache" >> "$GITHUB_ENV"
+          echo 'HXCPP_CACHE_MB="4096"' >> "$GITHUB_ENV"
+
+      - name: Build game (Release)
+        if: ${{ github.event.inputs.build_type != 'debug' }}
+        run: |
+          haxelib run lime build windows -v -release -DGITHUB_BUILD
+        timeout-minutes: 120
+
+      - name: Build game (Debug)
+        if: ${{ github.event.inputs.build_type == 'debug' }}
+        run: |
+          haxelib run lime build windows -v -DGITHUB_BUILD
+        timeout-minutes: 120
+
+      - name: Package build artifact
+        run: |
+          BUILD_DIR="export/release/windows/bin"
+          if [ ! -d "$BUILD_DIR" ]; then
+            BUILD_DIR="export/debug/windows/bin"
+          fi
+          echo "Build dir: $BUILD_DIR"
+          ls -la "$BUILD_DIR" || true
+
+          # Create a zip with version info
+          VERSION=$(git describe --tags --always --dirty 2>/dev/null || echo "dev")
+          ARTIFACT_NAME="UziFunkin-Windows-${VERSION}"
+          mkdir -p "/tmp/${ARTIFACT_NAME}"
+          cp -r "${BUILD_DIR}"/* "/tmp/${ARTIFACT_NAME}/" 2>/dev/null || true
+
+          # Write build info
+          cat > "/tmp/${ARTIFACT_NAME}/build_info.txt" << EOF
+          FNF: Uzi Funkin Engine
+          Build Version: ${VERSION}
+          Commit: ${{ github.sha }}
+          Branch: ${{ github.ref_name }}
+          Build Date: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          Build Type: ${{ github.event.inputs.build_type || 'release' }}
+          Runner: ${{ runner.os }}
+          Haxe: ${{ env.HAXE_VERSION }}
+          EOF
+
+          cd /tmp
+          7z a -tzip "${ARTIFACT_NAME}.zip" "${ARTIFACT_NAME}/"
+          cp "${ARTIFACT_NAME}.zip" "${GITHUB_WORKSPACE}/"
+          echo "ARTIFACT_NAME=${ARTIFACT_NAME}" >> "$GITHUB_ENV"
+
+      - name: Upload build artifact
+        if: ${{ github.event.inputs.upload_artifact != 'false' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: UziFunkin-Windows
+          path: ${{ env.ARTIFACT_NAME }}.zip
+          retention-days: 30
+          if-no-files-found: error
+
+  # ──────────────────────────────────────────────
+  # Build for Linux
+  # ──────────────────────────────────────────────
+  build-linux:
+    name: Build Linux
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            g++ \
+            libx11-dev libxi-dev libxext-dev libxinerama-dev libxrandr-dev \
+            libgl-dev libgl1-mesa-dev \
+            libasound2-dev libpulse-dev \
+            libvlc-dev libvlccore-dev
+
+      - name: Install Haxe
+        uses: krdlab/setup-haxe@v1
+        with:
+          haxe-version: ${{ env.HAXE_VERSION }}
+
+      - name: Verify Haxe installation
+        run: |
+          haxe -version
+          haxelib version
+
+      - name: Cache Haxelib dependencies
+        uses: actions/cache@v4
+        id: cache-hmm
+        with:
+          path: .haxelib
+          key: haxe-hmm-linux-${{ hashFiles('**/hmm.json') }}
+          restore-keys: |
+            haxe-hmm-linux-
+
+      - name: Install HMM and dependencies
+        if: steps.cache-hmm.outputs.cache-hit != 'true'
+        run: |
+          haxelib --global install hmm
+          haxelib --global run hmm install -q
+        timeout-minutes: 30
+
+      - name: Configure haxelib repo
+        if: steps.cache-hmm.outputs.cache-hit == 'true'
+        run: |
+          haxelib --global install hmm || true
+          haxelib --never newrepo
+
+      - name: Cache HXCPP compilation
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ runner.temp }}/hxcpp_cache
+            export
+          key: hxcpp-linux-${{ github.ref_name }}-${{ github.sha }}
+          restore-keys: |
+            hxcpp-linux-${{ github.ref_name }}-
+
+      - name: Set HXCPP cache env
+        run: |
+          echo "HXCPP_COMPILE_CACHE=${{ runner.temp }}/hxcpp_cache" >> "$GITHUB_ENV"
+          echo 'HXCPP_CACHE_MB="4096"' >> "$GITHUB_ENV"
+
+      - name: Build game (Release)
+        if: ${{ github.event.inputs.build_type != 'debug' }}
+        run: |
+          haxelib run lime build linux -v -release -DGITHUB_BUILD
+        timeout-minutes: 120
+
+      - name: Build game (Debug)
+        if: ${{ github.event.inputs.build_type == 'debug' }}
+        run: |
+          haxelib run lime build linux -v -DGITHUB_BUILD
+        timeout-minutes: 120
+
+      - name: Package build artifact
+        run: |
+          BUILD_DIR="export/release/linux/bin"
+          if [ ! -d "$BUILD_DIR" ]; then
+            BUILD_DIR="export/debug/linux/bin"
+          fi
+          echo "Build dir: $BUILD_DIR"
+
+          VERSION=$(git describe --tags --always --dirty 2>/dev/null || echo "dev")
+          ARTIFACT_NAME="UziFunkin-Linux-${VERSION}"
+          mkdir -p "/tmp/${ARTIFACT_NAME}"
+          cp -r "${BUILD_DIR}"/* "/tmp/${ARTIFACT_NAME}/" 2>/dev/null || true
+
+          cat > "/tmp/${ARTIFACT_NAME}/build_info.txt" << EOF
+          FNF: Uzi Funkin Engine
+          Build Version: ${VERSION}
+          Commit: ${{ github.sha }}
+          Branch: ${{ github.ref_name }}
+          Build Date: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          Build Type: ${{ github.event.inputs.build_type || 'release' }}
+          Runner: ${{ runner.os }}
+          Haxe: ${{ env.HAXE_VERSION }}
+          EOF
+
+          cd /tmp
+          tar -czf "${ARTIFACT_NAME}.tar.gz" "${ARTIFACT_NAME}/"
+          cp "${ARTIFACT_NAME}.tar.gz" "${GITHUB_WORKSPACE}/"
+          echo "ARTIFACT_NAME=${ARTIFACT_NAME}" >> "$GITHUB_ENV"
+
+      - name: Upload build artifact
+        if: ${{ github.event.inputs.upload_artifact != 'false' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: UziFunkin-Linux
+          path: ${{ env.ARTIFACT_NAME }}.tar.gz
+          retention-days: 30
+          if-no-files-found: error
+
+  # ──────────────────────────────────────────────
+  # Build for macOS
+  # ──────────────────────────────────────────────
+  build-macos:
+    name: Build macOS
+    runs-on: macos-latest
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Install Haxe
+        uses: krdlab/setup-haxe@v1
+        with:
+          haxe-version: ${{ env.HAXE_VERSION }}
+
+      - name: Verify Haxe installation
+        run: |
+          haxe -version
+          haxelib version
+
+      - name: Cache Haxelib dependencies
+        uses: actions/cache@v4
+        id: cache-hmm
+        with:
+          path: .haxelib
+          key: haxe-hmm-macos-${{ hashFiles('**/hmm.json') }}
+          restore-keys: |
+            haxe-hmm-macos-
+
+      - name: Install HMM and dependencies
+        if: steps.cache-hmm.outputs.cache-hit != 'true'
+        run: |
+          haxelib --global install hmm
+          haxelib --global run hmm install -q
+        timeout-minutes: 30
+
+      - name: Configure haxelib repo
+        if: steps.cache-hmm.outputs.cache-hit == 'true'
+        run: |
+          haxelib --global install hmm || true
+          haxelib --never newrepo
+
+      - name: Cache HXCPP compilation
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ runner.temp }}/hxcpp_cache
+            export
+          key: hxcpp-macos-${{ github.ref_name }}-${{ github.sha }}
+          restore-keys: |
+            hxcpp-macos-${{ github.ref_name }}-
+
+      - name: Set HXCPP cache env
+        run: |
+          echo "HXCPP_COMPILE_CACHE=${{ runner.temp }}/hxcpp_cache" >> "$GITHUB_ENV"
+          echo 'HXCPP_CACHE_MB="4096"' >> "$GITHUB_ENV"
+
+      - name: Build game (Release)
+        if: ${{ github.event.inputs.build_type != 'debug' }}
+        run: |
+          haxelib run lime build mac -v -release -DGITHUB_BUILD
+        timeout-minutes: 120
+
+      - name: Build game (Debug)
+        if: ${{ github.event.inputs.build_type == 'debug' }}
+        run: |
+          haxelib run lime build mac -v -DGITHUB_BUILD
+        timeout-minutes: 120
+
+      - name: Package build artifact
+        run: |
+          BUILD_DIR="export/release/mac/bin"
+          if [ ! -d "$BUILD_DIR" ]; then
+            BUILD_DIR="export/debug/mac/bin"
+          fi
+          echo "Build dir: $BUILD_DIR"
+
+          VERSION=$(git describe --tags --always --dirty 2>/dev/null || echo "dev")
+          ARTIFACT_NAME="UziFunkin-macOS-${VERSION}"
+          mkdir -p "/tmp/${ARTIFACT_NAME}"
+          cp -r "${BUILD_DIR}"/* "/tmp/${ARTIFACT_NAME}/" 2>/dev/null || true
+
+          cat > "/tmp/${ARTIFACT_NAME}/build_info.txt" << EOF
+          FNF: Uzi Funkin Engine
+          Build Version: ${VERSION}
+          Commit: ${{ github.sha }}
+          Branch: ${{ github.ref_name }}
+          Build Date: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          Build Type: ${{ github.event.inputs.build_type || 'release' }}
+          Runner: ${{ runner.os }}
+          Haxe: ${{ env.HAXE_VERSION }}
+          EOF
+
+          cd /tmp
+          zip -r "${ARTIFACT_NAME}.zip" "${ARTIFACT_NAME}/"
+          cp "${ARTIFACT_NAME}.zip" "${GITHUB_WORKSPACE}/"
+          echo "ARTIFACT_NAME=${ARTIFACT_NAME}" >> "$GITHUB_ENV"
+
+      - name: Upload build artifact
+        if: ${{ github.event.inputs.upload_artifact != 'false' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: UziFunkin-macOS
+          path: ${{ env.ARTIFACT_NAME }}.zip
+          retention-days: 30
+          if-no-files-found: error

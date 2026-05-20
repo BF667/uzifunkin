@@ -1,0 +1,135 @@
+# FNF: Uzi Funkin Engine - Auto Release Workflow
+# Triggered when a version tag (v*) is pushed.
+# Builds Windows .exe and creates a GitHub Release with the artifact attached.
+
+name: Release Uzi Funkin Engine
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  HAXE_VERSION: '4.3.6'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build & Release Windows .exe
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Install Haxe
+        uses: krdlab/setup-haxe@v1
+        with:
+          haxe-version: ${{ env.HAXE_VERSION }}
+
+      - name: Cache Haxelib dependencies
+        uses: actions/cache@v4
+        id: cache-hmm
+        with:
+          path: .haxelib
+          key: haxe-hmm-windows-${{ hashFiles('**/hmm.json') }}
+          restore-keys: |
+            haxe-hmm-windows-
+
+      - name: Install HMM and dependencies
+        if: steps.cache-hmm.outputs.cache-hit != 'true'
+        run: |
+          haxelib --global install hmm
+          haxelib --global run hmm install -q
+        timeout-minutes: 30
+
+      - name: Configure haxelib repo
+        if: steps.cache-hmm.outputs.cache-hit == 'true'
+        run: |
+          haxelib --global install hmm || true
+          haxelib --never newrepo
+
+      - name: Cache HXCPP compilation
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ runner.temp }}/hxcpp_cache
+            export
+          key: hxcpp-release-windows-${{ github.ref_name }}-${{ github.sha }}
+          restore-keys: |
+            hxcpp-release-windows-${{ github.ref_name }}-
+
+      - name: Set HXCPP cache env
+        run: |
+          echo "HXCPP_COMPILE_CACHE=${{ runner.temp }}/hxcpp_cache" >> "$GITHUB_ENV"
+          echo 'HXCPP_CACHE_MB="4096"' >> "$GITHUB_ENV"
+
+      - name: Build game (Release)
+        run: |
+          haxelib run lime build windows -v -release -DGITHUB_BUILD
+        timeout-minutes: 120
+
+      - name: Package release artifact
+        run: |
+          BUILD_DIR="export/release/windows/bin"
+          TAG_NAME="${GITHUB_REF#refs/tags/}"
+          ARTIFACT_NAME="UziFunkin-${TAG_NAME}-Windows"
+
+          mkdir -p "/tmp/${ARTIFACT_NAME}"
+          cp -r "${BUILD_DIR}"/* "/tmp/${ARTIFACT_NAME}/" 2>/dev/null || true
+
+          # Write build info
+          cat > "/tmp/${ARTIFACT_NAME}/build_info.txt" << EOF
+          FNF: Uzi Funkin Engine
+          Version: ${TAG_NAME}
+          Commit: ${{ github.sha }}
+          Build Date: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          Build Type: release
+          Platform: Windows
+          Haxe: ${{ env.HAXE_VERSION }}
+          EOF
+
+          cd /tmp
+          7z a -tzip "${ARTIFACT_NAME}.zip" "${ARTIFACT_NAME}/"
+          cp "${ARTIFACT_NAME}.zip" "${GITHUB_WORKSPACE}/"
+          echo "ARTIFACT_NAME=${ARTIFACT_NAME}" >> "$GITHUB_ENV"
+          echo "TAG_NAME=${TAG_NAME}" >> "$GITHUB_ENV"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.TAG_NAME }}
+          name: "FNF: Uzi Funkin Engine ${{ env.TAG_NAME }}"
+          body: |
+            ## FNF: Uzi Funkin Engine ${{ env.TAG_NAME }}
+
+            ### Download
+            - **Windows**: Download `${{ env.ARTIFACT_NAME }}.zip` below, extract and run `UziFunkin.exe`
+
+            ### Features
+            - Optimized for low-end devices
+            - Launcher with Gameplay Mode & Modding Mode
+            - Built-in mod management (import, enable/disable)
+            - Charting & modding tools in Modding Mode
+
+            ### How to Run
+            1. Download the zip file
+            2. Extract to any folder
+            3. Run `UziFunkin.exe`
+            4. Choose Gameplay Mode or Modding Mode from the launcher
+
+            ---
+            **Commit**: ${{ github.sha }}
+            **Haxe**: ${{ env.HAXE_VERSION }}
+          draft: false
+          prerelease: false
+          files: |
+            ${{ env.ARTIFACT_NAME }}.zip
