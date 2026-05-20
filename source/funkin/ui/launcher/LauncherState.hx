@@ -106,12 +106,12 @@ class LauncherState extends MusicBeatState
 
     // Mode selection buttons
     gameplayButton = new LauncherButton(0, 250, "GAMEPLAY MODE", "Play Story Mode, Freeplay, and more!", FlxColor.fromRGB(80, 200, 120));
-    gameplayButton.screenCenter(X);
+    gameplayButton.screenCenterGroupX();
     add(gameplayButton);
     options.push(gameplayButton);
 
     moddingButton = new LauncherButton(0, 400, "MODDING MODE", "Chart Editor, Stage Editor, Import Mods", FlxColor.fromRGB(200, 100, 255));
-    moddingButton.screenCenter(X);
+    moddingButton.screenCenterGroupX();
     add(moddingButton);
     options.push(moddingButton);
 
@@ -387,6 +387,20 @@ class LauncherButton extends FlxGroup
       bg.color = FlxColor.fromRGB(25, 20, 45);
       glow.alpha = 0;
       label.scale.set(1.0, 1.0);
+    }
+  }
+
+  /**
+   * Center this button group horizontally on screen.
+   * FlxGroup doesn't have screenCenter, so we do it manually.
+   */
+  public function screenCenterGroupX():Void
+  {
+    var centerX:Float = (FlxG.width - 500) / 2; // 500 = button width
+    var offsetX:Float = centerX - bg.x;
+    for (member in members)
+    {
+      if (member != null) member.x += offsetX;
     }
   }
 
