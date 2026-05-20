@@ -116,6 +116,10 @@ class Save implements ConsoleClass
         globalOffset: 0,
         audioVisualOffset: 0,
         unlockedFramerate: false,
+        lowEndMode: false,
+        disableCameraZoom: false,
+        hideOpponentStrumline: false,
+        disableStageAnimations: false,
         screenshot: {
           shouldHideMouse: true,
           fancyPreview: true,
@@ -1227,6 +1231,30 @@ typedef SaveDataOptions =
    * @default `false`
    */
   var unlockedFramerate:Bool;
+
+  /**
+   * If enabled, reduces rendering quality for better performance on low-end devices.
+   * @default `false`
+   */
+  var lowEndMode:Bool;
+
+  /**
+   * If enabled, disables camera zoom effects during gameplay for better performance.
+   * @default `false`
+   */
+  var disableCameraZoom:Bool;
+
+  /**
+   * If enabled, the opponent strumline will be hidden for better performance.
+   * @default `false`
+   */
+  var hideOpponentStrumline:Bool;
+
+  /**
+   * If enabled, disables stage background animations (boppers) for better performance.
+   * @default `false`
+   */
+  var disableStageAnimations:Bool;
 
   /**
    * Screenshot options

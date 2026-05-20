@@ -178,6 +178,8 @@ class Bopper extends StageProp implements IPlayStateScriptedClass
    */
   public function dance(forceRestart:Bool = false):Void
   {
+    if (funkin.Preferences.disableStageAnimations) return;
+
     if (this.animation == null)
     {
       return;

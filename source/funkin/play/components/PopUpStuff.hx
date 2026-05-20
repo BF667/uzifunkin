@@ -71,6 +71,9 @@ class PopUpStuff extends FlxTypedGroup<FunkinSprite>
 
   public function displayCombo(combo:Int = 0):Void
   {
+    // On low-end mode, skip combo number popups to save performance
+    if (funkin.Preferences.lowEndMode) return;
+
     var seperatedScore:Array<Int> = [];
     var tempCombo:Int = combo;
 

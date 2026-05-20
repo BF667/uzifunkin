@@ -154,6 +154,22 @@ class PreferencesMenu extends Page<OptionsState.OptionsMenuPageName>
     {
       Preferences.subtitles = value;
     }, Preferences.subtitles);
+    createPrefItemCheckbox('Low End Mode', 'When enabled, reduces rendering quality for better performance on low-end devices. Disables note splashes and hold note covers.', function(value:Bool):Void
+    {
+      Preferences.lowEndMode = value;
+    }, Preferences.lowEndMode);
+    createPrefItemCheckbox('Disable Camera Zoom', 'When enabled, camera zoom effects during gameplay are disabled for better performance.', function(value:Bool):Void
+    {
+      Preferences.disableCameraZoom = value;
+    }, Preferences.disableCameraZoom);
+    createPrefItemCheckbox('Hide Opponent Strumline', 'When enabled, the opponent strumline is hidden for better performance.', function(value:Bool):Void
+    {
+      Preferences.hideOpponentStrumline = value;
+    }, Preferences.hideOpponentStrumline);
+    createPrefItemCheckbox('Disable Stage Animations', 'When enabled, stage background animations (boppers) are disabled for better performance.', function(value:Bool):Void
+    {
+      Preferences.disableStageAnimations = value;
+    }, Preferences.disableStageAnimations);
     #if FEATURE_DEBUG_DISPLAY
     // note: technically we can do DebugDisplayMode.Advanced => DebugDisplayMode.Advanced, etc. here, but that's a bit headache inducing.
     createPrefItemEnum('Debug Display', 'When enabled, FPS and other debug stats are displayed.',

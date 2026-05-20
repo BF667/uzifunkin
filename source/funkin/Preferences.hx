@@ -561,6 +561,87 @@ class Preferences
     return value;
   }
 
+  /**
+   * If enabled, reduces rendering quality for better performance on low-end devices.
+   * Disables note splashes, hold note covers, and reduces animation detail.
+   * @default `false`
+   */
+  public static var lowEndMode(get, set):Bool;
+
+  static function get_lowEndMode():Bool
+  {
+    #if LOW_END_DEFAULT
+    return Save?.instance?.options?.lowEndMode ?? true;
+    #else
+    return Save?.instance?.options?.lowEndMode ?? false;
+    #end
+  }
+
+  static function set_lowEndMode(value:Bool):Bool
+  {
+    var save:Save = Save.instance;
+    save.options.lowEndMode = value;
+    Save.system.flush();
+    return value;
+  }
+
+  /**
+   * If enabled, disables camera zoom effects during gameplay for better performance.
+   * @default `false`
+   */
+  public static var disableCameraZoom(get, set):Bool;
+
+  static function get_disableCameraZoom():Bool
+  {
+    return Save?.instance?.options?.disableCameraZoom ?? false;
+  }
+
+  static function set_disableCameraZoom(value:Bool):Bool
+  {
+    var save:Save = Save.instance;
+    save.options.disableCameraZoom = value;
+    Save.system.flush();
+    return value;
+  }
+
+  /**
+   * If enabled, the opponent strumline will be hidden for better performance.
+   * @default `false`
+   */
+  public static var hideOpponentStrumline(get, set):Bool;
+
+  static function get_hideOpponentStrumline():Bool
+  {
+    return Save?.instance?.options?.hideOpponentStrumline ?? false;
+  }
+
+  static function set_hideOpponentStrumline(value:Bool):Bool
+  {
+    var save:Save = Save.instance;
+    save.options.hideOpponentStrumline = value;
+    Save.system.flush();
+    return value;
+  }
+
+  /**
+   * If enabled, disables stage background animations (boppers) for better performance.
+   * @default `false`
+   */
+  public static var disableStageAnimations(get, set):Bool;
+
+  static function get_disableStageAnimations():Bool
+  {
+    return Save?.instance?.options?.disableStageAnimations ?? false;
+  }
+
+  static function set_disableStageAnimations(value:Bool):Bool
+  {
+    var save:Save = Save.instance;
+    save.options.disableStageAnimations = value;
+    Save.system.flush();
+    return value;
+  }
+
   #if mobile
   /**
    * If enabled, device will be able to sleep on its own.

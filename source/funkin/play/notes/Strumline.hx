@@ -75,7 +75,7 @@ class Strumline extends FlxSpriteGroup
    * TODO: Make this a setting!
    * IE: Settings.noSplash
    */
-  public var showNotesplash:Bool = true;
+  public var showNotesplash:Bool = !funkin.Preferences.lowEndMode;
 
   /**
    * Whether this strumline is controlled by the player's inputs.
@@ -1107,6 +1107,7 @@ class Strumline extends FlxSpriteGroup
   public function playNoteHoldCover(holdNote:SustainTrail):Void
   {
     if (!showNotesplash) return;
+    if (funkin.Preferences.lowEndMode) return;
     if (!noteStyle.isHoldNoteCoverEnabled()) return;
 
     var cover:NoteHoldCover = this.constructNoteHoldCover();

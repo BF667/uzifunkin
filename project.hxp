@@ -32,34 +32,34 @@ class Project extends HXProject
    * REMEMBER TO CHANGE THIS WHEN THE GAME UPDATES!
    * You only have to change it here, the rest of the game will query this value.
    */
-  static final VERSION:String = "0.8.5";
+  static final VERSION:String = "0.1.0";
 
   /**
    * The build's number and version code.
    * Used when publishing the game to mobile app stores. Should increment with each patch.
    */
-  static final BUILD_NUMBER:Int = 87;
+  static final BUILD_NUMBER:Int = 1;
 
   /**
    * The game's name. Used as the default window title.
    */
-  static final TITLE:String = "Friday Night Funkin'";
+  static final TITLE:String = "FNF: Uzi Funkin Engine";
 
   /**
    * The game's name on mobile. Used as the title for the game on the home screen.
    */
-  static final TITLE_MOBILE:String = "FNF";
+  static final TITLE_MOBILE:String = "Uzi Funkin";
 
   /**
    * A package name used for identifying the app on various app stores.
    */
-  static final PACKAGE_NAME:String = "me.funkin.fnf";
+  static final PACKAGE_NAME:String = "com.uzifunkin.engine";
 
   /**
    * The name of the generated executable file.
    * For example, `"Funkin"` will create a file called `Funkin.exe`.
    */
-  static final EXECUTABLE_NAME:String = "Funkin";
+  static final EXECUTABLE_NAME:String = "UziFunkin";
 
   /**
    * The relative location of the source code.
@@ -87,7 +87,7 @@ class Project extends HXProject
    * The company name for the game.
    * This appears in metadata in places I think.
    */
-  static final COMPANY:String = "The Funkin' Crew";
+  static final COMPANY:String = "Uzi Funkin Team";
 
   /**
    * The app's localization languages.

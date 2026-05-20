@@ -210,7 +210,9 @@ class TitleState extends MusicBeatState
 
   override function update(elapsed:Float):Void
   {
+    #if FEATURE_DEBUG_FUNCTIONS
     FlxG.bitmapLog.add(FlxG.camera.buffer);
+    #end
 
     #if (desktop || android)
     // Pressing BACK on the title screen should close the game.
@@ -429,16 +431,11 @@ class TitleState extends MusicBeatState
             case 12:
               deleteCoolText();
             case 13:
-              addMoreText('Friday');
+              addMoreText('Uzi');
             case 14:
-              // easter egg for when the game is trending with the wrong spelling
-              // the random intro text would be "trending--only on x"
-
-              if (curWacky[0] == "trending") addMoreText('Nigth');
-              else
-                addMoreText('Night');
-            case 15:
               addMoreText('Funkin');
+            case 15:
+              addMoreText('Engine');
             case 16:
               skipIntro();
           }

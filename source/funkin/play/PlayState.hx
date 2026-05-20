@@ -1220,7 +1220,7 @@ class PlayState extends MusicBeatSubState
     var decayRate:Float = 0.95;
     var dt:Float = elapsed * 60; //
 
-    if (subState == null && cameraZoomRate > 0.0)
+    if (subState == null && cameraZoomRate > 0.0 && !funkin.Preferences.disableCameraZoom)
     {
       cameraBopMultiplier = FlxMath.lerp(1.0, cameraBopMultiplier, Math.pow(decayRate, dt));
 
@@ -2253,6 +2253,11 @@ class PlayState extends MusicBeatSubState
 
     opponentStrumline.zIndex = 1000;
     opponentStrumline.cameras = [camHUD];
+
+    if (funkin.Preferences.hideOpponentStrumline)
+    {
+      opponentStrumline.visible = false;
+    }
 
     #if mobile
     if (Preferences.controlsScheme == FunkinHitboxControlSchemes.Arrows && !ControlsHandler.hasExternalInputDevice)

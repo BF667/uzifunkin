@@ -254,6 +254,7 @@ class FunkinMemory
   private static function forceRender(graphic:FlxGraphic):Void
   {
     if (graphic == null) return;
+    if (funkin.Preferences.lowEndMode) return; // Skip expensive GPU upload on low-end devices
 
     var bmp:Null<FlxGraphic> = FlxG.bitmap.get(graphic.key);
     if (bmp != null && bmp.bitmap != null) var _:Int = bmp.bitmap.width; // Trigger

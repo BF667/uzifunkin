@@ -49,6 +49,7 @@ class NoteHoldCover extends FlxTypedSpriteGroup<FlxSprite>
 
   public function playStart():Void
   {
+    if (funkin.Preferences.lowEndMode) return; // Skip hold covers on low-end devices
     glow.setPosition(this.x, this.y);
     var direction:NoteDirection = holdNote.noteDirection;
     glow.animation.play('holdCoverStart${direction.colorName.toTitleCase()}');
