@@ -73,6 +73,11 @@ jobs:
           haxe compile.hxml
         timeout-minutes: 15
 
+      - name: Rebuild lime native libraries
+        run: |
+          haxelib run lime rebuild cpp -v
+        timeout-minutes: 30
+
       - name: Cache HXCPP compilation
         uses: actions/cache@v4
         with:
