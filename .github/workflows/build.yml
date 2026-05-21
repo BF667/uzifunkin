@@ -210,7 +210,8 @@ jobs:
             libdbus-1-dev \
             libibus-1.0-dev \
             libudev-dev \
-            libwayland-dev libxkbcommon-dev
+            libwayland-dev libxkbcommon-dev \
+            libdrm-dev libgbm-dev
 
       - name: Install Haxe
         uses: krdlab/setup-haxe@v1
