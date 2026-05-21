@@ -203,12 +203,14 @@ jobs:
           sudo apt-get install -y \
             g++ \
             libx11-dev libxi-dev libxext-dev libxinerama-dev libxrandr-dev \
+            libxcursor-dev libxss-dev libxxf86vm-dev \
             libgl-dev libgl1-mesa-dev \
             libasound2-dev libpulse-dev \
             libvlc-dev libvlccore-dev \
             libdbus-1-dev \
             libibus-1.0-dev \
-            libudev-dev
+            libudev-dev \
+            libwayland-dev libxkbcommon-dev
 
       - name: Install Haxe
         uses: krdlab/setup-haxe@v1

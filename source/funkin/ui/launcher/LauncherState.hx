@@ -167,7 +167,7 @@ class LauncherState extends MusicBeatState
   function getEnabledModCount():Int
   {
     #if FEATURE_POLYMOD_MODS
-    var mods = funkin.save.Save.instance?.enabledModDirs?.value;
+    var mods = funkin.save.Save.instance.enabledModDirs.value;
     if (mods != null) return mods.length;
     #end
     return 0;
@@ -191,7 +191,9 @@ class LauncherState extends MusicBeatState
         sys.io.File.copy(path, './mods/$modName.zip');
 
         // Refresh mod list
+        #if FEATURE_POLYMOD_MODS
         PolymodHandler.loadAllMods();
+        #end
 
         var enabledModsCount:Int = getEnabledModCount();
         modInfoText.text = 'Mods Loaded: $enabledModsCount (Imported: $modName)';
