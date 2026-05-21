@@ -244,9 +244,9 @@ jobs:
         id: cache-hmm
         with:
           path: .haxelib
-          key: haxe-hmm-linux-v2-${{ hashFiles('**/hmm.json') }}
+          key: haxe-hmm-linux-v3-${{ hashFiles('**/hmm.json') }}
           restore-keys: |
-            haxe-hmm-linux-v2-
+            haxe-hmm-linux-v3-
 
       - name: Install dependencies via hmm
         if: steps.cache-hmm.outputs.cache-hit != 'true'
@@ -268,14 +268,14 @@ jobs:
           path: |
             .haxelib/lime/git/ndll
             .haxelib/lime/git/project/obj
-          key: lime-linux-v3-${{ hashFiles('**/hmm.json') }}
+          key: lime-linux-v4-${{ hashFiles('**/hmm.json') }}
           restore-keys: |
-            lime-linux-v3-
+            lime-linux-v4-
 
       - name: Rebuild lime native libraries
         if: steps.cache-lime.outputs.cache-hit != 'true'
         run: |
-          haxelib run lime rebuild cpp -release
+          haxelib run lime rebuild cpp -release -DHXCPP_M64
         timeout-minutes: 90
 
       - name: Cache HXCPP compilation
@@ -294,13 +294,13 @@ jobs:
       - name: Build game (Release)
         if: ${{ github.event.inputs.build_type != 'debug' }}
         run: |
-          haxelib run lime build linux -v -release -DGITHUB_BUILD
+          haxelib run lime build linux -v -release -DGITHUB_BUILD -DHXCPP_M64
         timeout-minutes: 120
 
       - name: Build game (Debug)
         if: ${{ github.event.inputs.build_type == 'debug' }}
         run: |
-          haxelib run lime build linux -v -DGITHUB_BUILD
+          haxelib run lime build linux -v -DGITHUB_BUILD -DHXCPP_M64
         timeout-minutes: 120
 
       - name: Package build artifact
