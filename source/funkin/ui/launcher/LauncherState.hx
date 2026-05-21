@@ -400,7 +400,11 @@ class LauncherButton extends FlxGroup
     var offsetX:Float = centerX - bg.x;
     for (member in members)
     {
-      if (member != null) member.x += offsetX;
+      if (member != null)
+      {
+        var obj:flixel.FlxObject = Std.downcast(member, flixel.FlxObject);
+        if (obj != null) obj.x += offsetX;
+      }
     }
   }
 

@@ -99,10 +99,22 @@ jobs:
           haxe compile.hxml
         timeout-minutes: 15
 
+      - name: Cache lime native libraries
+        id: cache-lime
+        uses: actions/cache@v4
+        with:
+          path: |
+            .haxelib/lime/git/ndll
+            .haxelib/lime/git/project/obj
+          key: lime-windows-v3-${{ hashFiles('**/hmm.json') }}
+          restore-keys: |
+            lime-windows-v3-
+
       - name: Rebuild lime native libraries
+        if: steps.cache-lime.outputs.cache-hit != 'true'
         run: |
-          haxelib run lime rebuild cpp -v
-        timeout-minutes: 60
+          haxelib run lime rebuild cpp -release
+        timeout-minutes: 90
 
       - name: Cache HXCPP compilation
         uses: actions/cache@v4
@@ -246,10 +258,22 @@ jobs:
           haxe compile.hxml
         timeout-minutes: 15
 
+      - name: Cache lime native libraries
+        id: cache-lime
+        uses: actions/cache@v4
+        with:
+          path: |
+            .haxelib/lime/git/ndll
+            .haxelib/lime/git/project/obj
+          key: lime-linux-v3-${{ hashFiles('**/hmm.json') }}
+          restore-keys: |
+            lime-linux-v3-
+
       - name: Rebuild lime native libraries
+        if: steps.cache-lime.outputs.cache-hit != 'true'
         run: |
-          haxelib run lime rebuild cpp -v
-        timeout-minutes: 60
+          haxelib run lime rebuild cpp -release
+        timeout-minutes: 90
 
       - name: Cache HXCPP compilation
         uses: actions/cache@v4
@@ -379,10 +403,22 @@ jobs:
           haxe compile.hxml
         timeout-minutes: 15
 
+      - name: Cache lime native libraries
+        id: cache-lime
+        uses: actions/cache@v4
+        with:
+          path: |
+            .haxelib/lime/git/ndll
+            .haxelib/lime/git/project/obj
+          key: lime-macos-v3-${{ hashFiles('**/hmm.json') }}
+          restore-keys: |
+            lime-macos-v3-
+
       - name: Rebuild lime native libraries
+        if: steps.cache-lime.outputs.cache-hit != 'true'
         run: |
-          haxelib run lime rebuild cpp -v
-        timeout-minutes: 60
+          haxelib run lime rebuild cpp -release
+        timeout-minutes: 90
 
       - name: Cache HXCPP compilation
         uses: actions/cache@v4
