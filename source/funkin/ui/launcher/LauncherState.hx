@@ -183,12 +183,27 @@ class LauncherState extends MusicBeatState
     {
       try
       {
-        var modName:String = haxe.io.Path.withoutDirectory(haxe.io.Path.withoutExtension(path));
+        // SECURITY: Sanitize the mod name to prevent path traversal.
+        // haxe.io.Path.withoutDirectory only strips the OS-native separator,
+        // so on Linux a Windows path like "..\\..\\evil.zip" is returned
+        // verbatim, and on Windows a Linux path like "../../evil.zip" is
+        // returned verbatim. We must strip ALL path separators (both / and \\)
+        // and reject ".." segments, control characters, and other shell-unsafe
+        // chars before composing the destination path.
+        var rawName:String = haxe.io.Path.withoutDirectory(haxe.io.Path.withoutExtension(path));
+        var modName:String = sanitizeModName(rawName);
+
+        if (modName.length == 0)
+        {
+          throw 'Refusing to import mod with empty or unsafe name: "$rawName"';
+        }
 
         if (!sys.FileSystem.exists('./mods')) sys.FileSystem.createDirectory('./mods');
 
-        // Copy the zip to the mods directory
-        sys.io.File.copy(path, './mods/$modName.zip');
+        // Copy the zip to the mods directory.
+        // The destination is now guaranteed to be a flat filename inside ./mods.
+        var destPath:String = haxe.io.Path.join(['./mods', '$modName.zip']);
+        sys.io.File.copy(path, destPath);
 
         // Refresh mod list
         #if FEATURE_POLYMOD_MODS
@@ -224,6 +239,33 @@ class LauncherState extends MusicBeatState
         modInfoText.text = 'Mods Loaded: $enabledModsCount';
       });
     }
+  }
+
+  /**
+   * Sanitize a mod name so it is safe to use as a single path segment.
+   * Strips path separators (both `/` and `\`), rejects `..` segments, removes
+   * shell-unsafe characters, and trims whitespace.
+   * Returns an empty string if the input cannot be sanitized to a safe name.
+   */
+  static function sanitizeModName(raw:String):String
+  {
+    if (raw == null) return '';
+    // Strip characters that are invalid in filenames on any OS, plus
+    // path separators and control characters. We use a single EReg so we
+    // don't depend on `using StringTools;` (which LauncherState.hx does
+    // not import) — EReg.replace is a method on EReg, not on String.
+    // Pattern matches: any of `:*?"<>|`, newline, CR, tab, `/`, `\`.
+    var unsafeChars:EReg = ~/[:*?"<>|\n\r\t\/\\]/g;
+    var cleaned:String = unsafeChars.replace(raw, '');
+    // Reject any remaining `..` or `.` segments — these are the only
+    // path-traversal primitives left after stripping separators.
+    if (cleaned == '..' || cleaned == '.')
+    {
+      return '';
+    }
+    // Trim whitespace via EReg (no StringTools dependency).
+    var trimmer:EReg = ~/^\s+|\s+$/g;
+    return trimmer.replace(cleaned, '');
   }
   #end
 

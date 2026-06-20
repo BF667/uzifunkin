@@ -62,7 +62,16 @@ class WindowUtil
     }
 
     #if linux
-    Sys.command('/usr/bin/xdg-open $targetUrl &');
+    // SECURITY: Use the array form of Sys.command so the URL is passed as a
+    // single argv element to xdg-open, NOT interpolated into a shell string.
+    // The previous form `Sys.command('/usr/bin/xdg-open $targetUrl &')` was
+    // a shell-injection vector: a malicious URL containing shell metacharacters
+    // that happened to pass the URL_REGEX sanitization (which permits `(`, `)`,
+    // `&`, etc. inside the path) could be executed by /bin/sh.
+    // The array form bypasses the shell entirely.
+    // xdg-open forks the user's preferred browser and returns immediately on
+    // most desktops, so we no longer need the trailing `&` either.
+    Sys.command('/usr/bin/xdg-open', [targetUrl]);
     #else
     // This should work on Windows and HTML5.
     FlxG.openURL(targetUrl);
